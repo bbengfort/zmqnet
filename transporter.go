@@ -18,7 +18,7 @@ import (
 // transporters.
 //
 // The primary role of the transporter is to send and receive messages
-// defined as protocol buffers. They can wrapp anytype of ZMQ object and its
+// defined as protocol buffers. They can wrap any type of ZMQ object and its
 // up to the primary classes to instantiate the socket correctly.
 type Transporter struct {
 	net    *Network    // parent network the transporter is a part of
@@ -74,14 +74,14 @@ func (t *Transporter) recv() (*pb.Message, error) {
 
 // Composes a message into protocol buffers and puts it on the socket.
 // Does not wait for the receiver, just fires off the reply.
-func (t *Transporter) send(message string) error {
+func (t *Transporter) send(message string, mtype pb.MessageType) error {
 	if t.sock == nil {
 		return errors.New("socket is not initialized")
 	}
 
 	// Compose the protobuf message
 	msg := &pb.Message{
-		Type:    pb.MessageType_SINGLE,
+		Type:    mtype,
 		Sender:  t.host.Name,
 		Message: message,
 	}

@@ -91,11 +91,9 @@ func serve(c *cli.Context) error {
 		return exit(err)
 	}
 
-	server := network.Server()
-	if err := server.Run(); err != nil {
+	if err := network.Run(); err != nil {
 		return exit(err)
 	}
-
 	return nil
 }
 
@@ -126,6 +124,7 @@ func send(c *cli.Context) error {
 	}
 
 	for _, msg := range c.Args() {
+		// if err := client.Send(msg); err != nil {
 		if err := client.Send(msg); err != nil {
 			return exit(err)
 		}

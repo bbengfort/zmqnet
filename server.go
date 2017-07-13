@@ -57,6 +57,17 @@ func (s *Server) Shutdown() error {
 
 func (s *Server) handle(message *pb.Message) {
 	info("received: %s\n", message.String())
-	reply := fmt.Sprintf("reply msg #%d", s.nRecv)
-	s.send(reply)
+
+	switch message.Type {
+	case pb.MessageType_SINGLE:
+		// Broadcast the single message to all peers
+		s.net.Broadcast(message.Message)
+
+		// Send a reply to the client
+		reply := fmt.Sprintf("reply msg #%d", s.nRecv)
+		s.send(reply, pb.MessageType_SINGLE)
+	case pb.MessageType_BOUNCE:
+		s.send("ack", pb.MessageType_BOUNCE)
+	}
+
 }

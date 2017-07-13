@@ -1,8 +1,7 @@
 package zmqnet
 
 import (
-	"time"
-
+	pb "github.com/bbengfort/zmqnet/msg"
 	zmq "github.com/pebbe/zmq4"
 )
 
@@ -29,14 +28,6 @@ func (c *Client) Connect() (err error) {
 	}
 	info("connected to %s\n", ep)
 
-	// Set socket options
-	if err := c.sock.SetSndtimeo(2 * time.Second); err != nil {
-		return err
-	}
-
-	// Ensure the socket is closed on termination
-	// go signalHandler(c.Close)
-
 	return nil
 }
 
@@ -46,7 +37,7 @@ func (c *Client) Connect() (err error) {
 
 // Send a message to the remote peer
 func (c *Client) Send(message string) error {
-	if err := c.send(message); err != nil {
+	if err := c.send(message, pb.MessageType_SINGLE); err != nil {
 		return err
 	}
 
