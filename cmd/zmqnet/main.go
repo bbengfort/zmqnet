@@ -75,21 +75,19 @@ func main() {
 // Server Commands
 //===========================================================================
 
+func exit(err error) error {
+	return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
+}
+
 func serve(c *cli.Context) error {
-	defer zmq4.Term()
-
-	server, err := zmqnet.NewServer(c.String("peers"), c.String("name"))
+	network, err := zmqnet.New(c.String("peers"), c.String("name"))
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
+		return exit(err)
 	}
 
-	ctx, err := zmq4.NewContext()
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
-	}
-
-	if err := server.Run(ctx); err != nil {
-		return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
+	server := network.Server()
+	if err := server.Run(); err != nil {
+		return exit(err)
 	}
 
 	return nil
@@ -102,25 +100,25 @@ func serve(c *cli.Context) error {
 func send(c *cli.Context) error {
 	defer zmq4.Term()
 
-	client, err := zmqnet.NewClient(c.String("peers"), c.String("name"))
+	network, err := zmqnet.New(c.String("peers"), c.String("name"))
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
+		return exit(err)
 	}
 
-	ctx, err := zmq4.NewContext()
+	client, err := network.Client(c.String("name"))
 	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
+		return exit(err)
 	}
 
-	if err := client.Connect(ctx); err != nil {
-		return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
+	if err := client.Connect(); err != nil {
+		return exit(err)
 	}
 
 	for _, msg := range c.Args() {
 		if err := client.Send(msg); err != nil {
-			return cli.NewExitError(fmt.Sprintf("fatal error: %s", err), 1)
+			return exit(err)
 		}
 	}
 
-	return nil
+	return client.Close()
 }

@@ -2,11 +2,9 @@ package zmqnet
 
 import (
 	"fmt"
-	"log"
-	"time"
 
 	"github.com/bbengfort/x/peers"
-	"github.com/pebbe/zmq4"
+	zmq "github.com/pebbe/zmq4"
 )
 
 //===========================================================================
@@ -15,69 +13,60 @@ import (
 
 // Server responds to requests from other peers.
 type Server struct {
-	host  *peers.Peer  // the host and address information of the server
-	sock  *zmq4.Socket // the socket that the server is bound on
-	done  chan bool    // shutdown semaphore channel
-	msgs  chan string  // channel to receive ZMQ messages on
-	count uint64       // number of messages received
+	net   *Network    // parent network the server is a part of
+	host  *peers.Peer // the host and address information of the server
+	sock  *zmq.Socket // the socket that the server is bound on
+	count uint64      // number of messages received
+}
+
+// Init the server with the specified host and any other internal data.
+func (s *Server) Init(host *peers.Peer, net *Network) {
+	s.host = host
+	s.net = net
 }
 
 // Run the server and listen for messages
-func (s *Server) Run(ctx *zmq4.Context) (err error) {
+func (s *Server) Run() (err error) {
+
 	// Create the socket
-	if s.sock, err = ctx.NewSocket(zmq4.REP); err != nil {
+	if s.sock, err = s.net.context.NewSocket(zmq.REP); err != nil {
 		return err
 	}
 
 	// Bind the socket and run the listener
 	ep := s.host.ZMQEndpoint(true)
-	s.sock.Bind(ep)
-	log.Printf("bound to %s\n", ep)
-	go s.listen()
+	if err := s.sock.Bind(ep); err != nil {
+		return err
+	}
+	info("bound to %s\n", ep)
 
-	// Ensure the socket is closed on termination
-	go signalHandler(s.Shutdown)
-
-	// Wait for messages or the shutdown signal
-outer:
 	for {
-		select {
-		case done := <-s.done:
-			if done {
-				break outer
-			}
-		case msg := <-s.msgs:
-			s.handle(msg)
+		msg, err := s.sock.Recv(0)
+		if err != nil {
+			warne(err)
+			break
 		}
+		s.count++
+		s.handle(msg)
 	}
 
-	return nil
+	return s.Shutdown()
 }
 
 // Shutdown the server and clean up the socket
 func (s *Server) Shutdown() error {
-	log.Printf("shutting down")
-	s.done <- true
+	info("shutting down")
 	s.sock.Close()
-	zmq4.Term()
+	zmq.Term()
 	return nil
 }
 
-func (s *Server) listen() {
-	for {
-
-		msg, _ := s.sock.Recv(0)
-		if msg != "" {
-			s.count++
-			s.msgs <- string(msg)
-		}
-
-	}
-}
+//===========================================================================
+// Message Handling
+//===========================================================================
 
 func (s *Server) handle(msg string) {
-	log.Printf("received: %s\n", msg)
-	time.Sleep(time.Second)
+	info("received: %s\n", msg)
 	reply := fmt.Sprintf("reply msg #%d from %s", s.count, s.host.Name)
 	s.sock.Send(reply, 0)
 }

@@ -2,10 +2,9 @@ package zmqnet
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/bbengfort/x/peers"
-	"github.com/pebbe/zmq4"
+	zmq "github.com/pebbe/zmq4"
 )
 
 //===========================================================================
@@ -14,15 +13,22 @@ import (
 
 // Client communicates with a remote peer.
 type Client struct {
-	host  *peers.Peer  // the host and address information of the server
-	sock  *zmq4.Socket // the socket that the client is connected to
-	count uint64       // number of messages sent
+	net   *Network    // parent network the client is a part of
+	host  *peers.Peer // the host and address information of the server
+	sock  *zmq.Socket // the socket that the client is connected to
+	count uint64      // number of messages sent
+}
+
+// Init the client with the specified host and any other internal data.
+func (c *Client) Init(host *peers.Peer, net *Network) {
+	c.host = host
+	c.net = net
 }
 
 // Connect to the remote peer
-func (c *Client) Connect(ctx *zmq4.Context) (err error) {
+func (c *Client) Connect() (err error) {
 	// Create the socket
-	if c.sock, err = ctx.NewSocket(zmq4.REQ); err != nil {
+	if c.sock, err = c.net.context.NewSocket(zmq.REQ); err != nil {
 		return err
 	}
 
@@ -32,10 +38,10 @@ func (c *Client) Connect(ctx *zmq4.Context) (err error) {
 		return err
 	}
 
-	log.Printf("connected to %s\n", ep)
+	info("connected to %s\n", ep)
 
 	// Ensure the socket is closed on termination
-	go signalHandler(c.Close)
+	// go signalHandler(c.Close)
 
 	return nil
 }
@@ -44,6 +50,10 @@ func (c *Client) Connect(ctx *zmq4.Context) (err error) {
 func (c *Client) Close() error {
 	return c.sock.Close()
 }
+
+//===========================================================================
+// Transport Methods
+//===========================================================================
 
 // Send a message to the remote peer
 func (c *Client) Send(msg string) error {
@@ -59,6 +69,6 @@ func (c *Client) Send(msg string) error {
 		return err
 	}
 
-	log.Printf("received: %s\n", reply)
+	info("received: %s\n", reply)
 	return nil
 }

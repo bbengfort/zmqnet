@@ -11,6 +11,7 @@ import (
 // OS Signal Handlers
 //===========================================================================
 
+// Pass a function to run at shutdown and it is called on Interrupt and Term.
 func signalHandler(shutdown func() error) {
 	// Make signal channel and register notifiers for Interupt and Terminate
 	sigchan := make(chan os.Signal, 1)
