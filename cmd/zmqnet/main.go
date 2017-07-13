@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bbengfort/zmqnet"
+	pb "github.com/bbengfort/zmqnet/msg"
 	"github.com/joho/godotenv"
 	"github.com/pebbe/zmq4"
 	"github.com/urfave/cli"
@@ -69,6 +70,16 @@ func main() {
 					Usage: "parsable duration to delay between messages",
 					Value: "0s",
 				},
+				cli.StringFlag{
+					Name:  "t, timeout",
+					Usage: "recv timeout for each message",
+					Value: "2s",
+				},
+				cli.IntFlag{
+					Name:  "r, retries",
+					Usage: "number of retries before quitting",
+					Value: 3,
+				},
 			},
 		},
 	}
@@ -123,9 +134,14 @@ func send(c *cli.Context) error {
 		return exit(err)
 	}
 
+	var timeout time.Duration
+	if timeout, err = time.ParseDuration(c.String("timeout")); err != nil {
+		return exit(err)
+	}
+
 	for _, msg := range c.Args() {
 		// if err := client.Send(msg); err != nil {
-		if err := client.Send(msg); err != nil {
+		if err := client.Send(msg, pb.MessageType_SINGLE, c.Int("retries"), timeout); err != nil {
 			return exit(err)
 		}
 		if delay != 0 {

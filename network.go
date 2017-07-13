@@ -12,6 +12,9 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
+// Timeout for all broadcast messages
+const Timeout = 2 * time.Second
+
 //===========================================================================
 // Package Initialization
 //===========================================================================
@@ -131,13 +134,23 @@ func (n *Network) Broadcast(message string) error {
 	}
 
 	// Process messages from clients
-	sockets, _ := poller.PollAll(2 * time.Second)
-	for idx := range sockets {
-		msg, err := n.remotes[idx].recv()
-		if err != nil {
-			warne(err)
+	sockets, _ := poller.PollAll(Timeout)
+	for idx, socket := range sockets {
+
+		// Check to see if we got a reply from the server.
+		if socket.Events&zmq.POLLIN != 0 {
+			// We got a reply from the remote
+			msg, err := n.remotes[idx].recv()
+			if err != nil {
+				return err
+			}
+			info(msg.String())
+		} else {
+			warn("could not broadcast message to %s", n.remotes[idx].host.Name)
+			if err := n.remotes[idx].Reset(); err != nil {
+				return err
+			}
 		}
-		info(msg.String())
 	}
 
 	return nil

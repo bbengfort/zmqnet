@@ -16,8 +16,12 @@ At this point a `client` can send a message (REQ) to any of the processes in the
 
 ![Topologies](fixtures/zmqnet-broadcast.png)
 
-The current state of this network is not fault tolerant, ZMQ will block until all messages are received and sent. I need to implement request timeouts so
-that any node that is down in the network does not block the client or server processes. Currently, I'm thinking [Lazy Pirate](http://zguide.zeromq.org/go:lpclient), but am also looking into ROUTER/DEALER patterns with no middle broker as well.
+<s>The current state of this network is not fault tolerant, ZMQ will block until all messages are received and sent. I need to implement request timeouts so
+that any node that is down in the network does not block the client or server processes.</s> Currently, I've implemented [Lazy Pirate](http://zguide.zeromq.org/go:lpclient) with a request timeout and limited number of retries. The connection is just reset in a brute force way if there is no response from the server. If the server comes back online during retries then the message is handled.
+
+This all seems to be working well, except in Broadcast (no retries). For some reason, I'm occasionally getting `<NONE>` for the `sock.Events` variable using `PollAll` and I'm not sure why.
+
+It would be nice if there was a ROUTER/DEALER pattern with no in the middle broker ...
 
 ## Getting Started
 
@@ -77,4 +81,4 @@ Then you can use the client in yet a fourth terminal to create messages for them
 
     $ zmqnet -p peers.json send -n bravo "this is a test message"
 
-Both the `serve` and `send` commands require a specification of which host to use. 
+Both the `serve` and `send` commands require a specification of which host to use.

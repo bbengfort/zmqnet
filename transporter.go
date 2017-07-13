@@ -37,6 +37,12 @@ func (t *Transporter) Init(host *peers.Peer, net *Network) {
 
 // Close the socket and clean up the connections.
 func (t *Transporter) Close() error {
+	// Set linger to 0 so the connection closes immediately
+	if err := t.sock.SetLinger(0); err != nil {
+		return err
+	}
+
+	// Close the socket and return
 	return t.sock.Close()
 }
 
