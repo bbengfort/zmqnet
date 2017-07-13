@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/bbengfort/zmqnet"
 	"github.com/joho/godotenv"
@@ -63,6 +64,11 @@ func main() {
 					Usage: "name of the replica to initialize",
 					Value: "",
 				},
+				cli.StringFlag{
+					Name:  "d, delay",
+					Usage: "parsable duration to delay between messages",
+					Value: "0s",
+				},
 			},
 		},
 	}
@@ -110,13 +116,21 @@ func send(c *cli.Context) error {
 		return exit(err)
 	}
 
-	if err := client.Connect(); err != nil {
+	if err = client.Connect(); err != nil {
+		return exit(err)
+	}
+
+	var delay time.Duration
+	if delay, err = time.ParseDuration(c.String("delay")); err != nil {
 		return exit(err)
 	}
 
 	for _, msg := range c.Args() {
 		if err := client.Send(msg); err != nil {
 			return exit(err)
+		}
+		if delay != 0 {
+			time.Sleep(delay)
 		}
 	}
 

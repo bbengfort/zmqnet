@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/bbengfort/x/peers"
+	"github.com/bbengfort/zmqnet/msg"
+	"github.com/gogo/protobuf/proto"
 	zmq "github.com/pebbe/zmq4"
 )
 
@@ -41,12 +43,11 @@ func (s *Server) Run() (err error) {
 	info("bound to %s\n", ep)
 
 	for {
-		msg, err := s.sock.Recv(0)
+		msg, err := s.recv()
 		if err != nil {
 			warne(err)
 			break
 		}
-		s.count++
 		s.handle(msg)
 	}
 
@@ -65,8 +66,49 @@ func (s *Server) Shutdown() error {
 // Message Handling
 //===========================================================================
 
-func (s *Server) handle(msg string) {
-	info("received: %s\n", msg)
-	reply := fmt.Sprintf("reply msg #%d from %s", s.count, s.host.Name)
-	s.sock.Send(reply, 0)
+func (s *Server) handle(message *msg.Message) {
+	info("received: %s\n", message.String())
+	reply := fmt.Sprintf("reply msg #%d", s.count)
+	s.send(reply)
+}
+
+// Reads a zmq message from the socket and composes it into a protobuff
+// message for handling downstream. This method blocks until a message is
+// received.
+func (s *Server) recv() (*msg.Message, error) {
+	bytes, err := s.sock.RecvBytes(0)
+	if err != nil {
+		return nil, err
+	}
+
+	s.count++
+
+	message := new(msg.Message)
+	if err := proto.Unmarshal(bytes, message); err != nil {
+		return nil, err
+	}
+
+	return message, nil
+}
+
+// Composes a message into protocol buffers and puts it on the socket.
+// Does not wait for the receiver, just fires off the reply.
+func (s *Server) send(message string) error {
+	// Compose the protobuf message
+	reply := &msg.Message{
+		Type:    msg.MessageType_SINGLE,
+		Id:      s.count,
+		Sender:  s.host.Name,
+		Message: message,
+	}
+
+	// Serialize the message
+	data, err := proto.Marshal(reply)
+	if err != nil {
+		return err
+	}
+
+	// Send the bytes on the wire
+	_, err = s.sock.SendBytes(data, zmq.DONTWAIT)
+	return err
 }

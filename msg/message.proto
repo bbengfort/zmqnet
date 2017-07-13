@@ -1,0 +1,18 @@
+// Defines a message on the network
+
+syntax = "proto3";
+
+package msg;
+
+enum MessageType {
+    SINGLE = 0;
+    BOUNCE = 1;
+    ERROR = 2;
+}
+
+message Message {
+    MessageType type = 1;
+    uint64 id = 2;
+    string sender = 3;
+    string message = 4;
+}

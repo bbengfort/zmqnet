@@ -2,8 +2,11 @@ package zmqnet
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bbengfort/x/peers"
+	"github.com/bbengfort/zmqnet/msg"
+	"github.com/gogo/protobuf/proto"
 	zmq "github.com/pebbe/zmq4"
 )
 
@@ -37,8 +40,12 @@ func (c *Client) Connect() (err error) {
 	if err = c.sock.Connect(ep); err != nil {
 		return err
 	}
-
 	info("connected to %s\n", ep)
+
+	// Set socket options
+	if err := c.sock.SetSndtimeo(2 * time.Second); err != nil {
+		return err
+	}
 
 	// Ensure the socket is closed on termination
 	// go signalHandler(c.Close)
@@ -56,19 +63,46 @@ func (c *Client) Close() error {
 //===========================================================================
 
 // Send a message to the remote peer
-func (c *Client) Send(msg string) error {
-	c.count++
-	envelope := fmt.Sprintf("sent msg #%d from %s: %s", c.count, c.host.Name, msg)
-	if _, err := c.sock.Send(envelope, 0); err != nil {
-		return err
+func (c *Client) Send(message string) error {
+	c.count++ // Increment the number of sent messages
+
+	pb := &msg.Message{
+		Type:    msg.MessageType_SINGLE,
+		Id:      c.count,
+		Sender:  "client",
+		Message: message,
 	}
 
-	// Wait for the reply
-	reply, err := c.sock.Recv(0)
+	data, err := proto.Marshal(pb)
 	if err != nil {
 		return err
 	}
 
-	info("received: %s\n", reply)
+	if _, err = c.sock.SendBytes(data, zmq.DONTWAIT); err != nil {
+		return err
+	}
+
+	// Wait for the reply
+	reply, err := c.Recv()
+	if err != nil {
+		return err
+	}
+
+	info("received: %s\n", reply.String())
 	return nil
+}
+
+// Recv a message from the remote peer, parsing prtocol buffers along the way.
+func (c *Client) Recv() (*msg.Message, error) {
+	data, err := c.sock.RecvBytes(0)
+	if err != nil {
+		return nil, fmt.Errorf("could not recv data: %s", err)
+	}
+
+	var message = new(msg.Message)
+	if err = proto.Unmarshal(data, message); err != nil {
+		return nil, fmt.Errorf("could not unmarshal data: %s", err)
+	}
+
+	return message, nil
 }
