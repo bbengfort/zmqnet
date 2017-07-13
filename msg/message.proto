@@ -12,7 +12,6 @@ enum MessageType {
 
 message Message {
     MessageType type = 1;
-    uint64 id = 2;
-    string sender = 3;
-    string message = 4;
+    string sender = 2;
+    string message = 3;
 }
