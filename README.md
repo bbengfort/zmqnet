@@ -1,2 +1,5 @@
-# zmq-bench
-Benchmark a simple ZMQ service 
+# ZMQ Net
+
+**Tests for a fully connected ZMQ topology**
+
+![Topologies](fixtures/zmqnet.png)

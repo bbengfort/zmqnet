@@ -1,0 +1,32 @@
+{
+  "info": {
+    "num_replicas": 3,
+    "updated": "2017-07-13T13:36:53.158Z"
+  },
+  "replicas": [
+    {
+      "pid": 1000,
+      "name": "alpha",
+      "address": "localhost:3264",
+      "host": "apollo",
+      "ipaddr": "108.45.174.208",
+      "port": 3264
+    },
+    {
+      "pid": 1001,
+      "name": "bravo",
+      "address": "localhost:3265",
+      "host": "apollo",
+      "ipaddr": "108.45.174.208",
+      "port": 3265
+    },
+    {
+      "pid": 1002,
+      "name": "charlie",
+      "address": "localhost:3266",
+      "host": "apollo",
+      "ipaddr": "108.45.174.208",
+      "port": 3266
+    }
+  ]
+}
