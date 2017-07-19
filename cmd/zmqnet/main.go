@@ -24,7 +24,7 @@ func main() {
 	// Instantiate the command line application
 	app := cli.NewApp()
 	app.Name = "zmqnet"
-	app.Version = "0.1"
+	app.Version = "0.2"
 	app.Usage = "run the zmq network test platform"
 
 	// Define commands available to the application
@@ -53,10 +53,10 @@ func main() {
 					EnvVar: "ALIA_SERVER_UPTIME",
 				},
 				cli.UintFlag{
-					Name:   "log",
+					Name:   "verbosity",
 					Usage:  "set log level from 0-4, lower is more verbose",
 					Value:  2,
-					EnvVar: "ALIA_LOG_LEVEL",
+					EnvVar: "ALIA_VERBOSITY",
 				},
 			},
 		},
@@ -149,10 +149,10 @@ func main() {
 					EnvVar: "KILO_DISABLED",
 				},
 				cli.UintFlag{
-					Name:   "log",
+					Name:   "verbosity",
 					Usage:  "set log level from 0-4, lower is more verbose",
 					Value:  2,
-					EnvVar: "ALIA_LOG_LEVEL",
+					EnvVar: "ALIA_VERBOSITY",
 				},
 			},
 		},
@@ -173,9 +173,9 @@ func exit(err error) error {
 func serve(c *cli.Context) error {
 	defer zmq4.Term()
 
-	// Set the log level
-	log := c.Uint("log")
-	zmqnet.SetLogLevel(uint8(log))
+	// Set the debug log level
+	verbose := c.Uint("verbosity")
+	zmqnet.SetLogLevel(uint8(verbose))
 
 	// Create the network
 	network, err := zmqnet.New(c.String("peers"), c.String("name"))
@@ -252,8 +252,9 @@ func bench(c *cli.Context) error {
 		return nil
 	}
 
-	log := c.Uint("log")
-	zmqnet.SetLogLevel(uint8(log))
+	// Set the debug log level
+	verbose := c.Uint("verbosity")
+	zmqnet.SetLogLevel(uint8(verbose))
 
 	defer zmq4.Term()
 
