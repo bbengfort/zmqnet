@@ -31,10 +31,10 @@ func LogLevel() string {
 }
 
 // SetLogLevel modifies the log level for messages at runtime. Ensures that
-// the highest level that can be set is the trace level.
+// the highest level that can be set is the silent level.
 func SetLogLevel(level uint8) {
-	if level > Trace {
-		level = Trace
+	if level > Silent {
+		level = Silent
 	}
 
 	logLevel = level

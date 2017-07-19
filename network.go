@@ -121,10 +121,55 @@ func (n *Network) Shutdown() error {
 }
 
 // Broadcast a message to all remote hosts.
+// TODO: ZMQ broadcast is not working for some reason.
+// func (n *Network) Broadcast(message string) error {
+// 	// Send messages to all clients
+// 	for _, client := range n.remotes {
+// 		go client.send(message, pb.MessageType_BOUNCE)
+// 	}
+//
+// 	// Create poller and add poll sockets
+// 	poller := zmq.NewPoller()
+// 	for _, client := range n.remotes {
+// 		poller.Add(client.sock, zmq.POLLIN)
+// 	}
+//
+// 	// Process messages from clients
+// 	sockets, _ := poller.PollAll(Timeout)
+// 	for idx, socket := range sockets {
+//
+// 		// Check to see if we got a reply from the server.
+// 		if socket.Events&zmq.POLLIN != 0 {
+// 			// We got a reply from the remote
+// 			msg, err := n.remotes[idx].recv()
+// 			if err != nil {
+// 				return err
+// 			}
+// 			info(msg.String())
+// 		} else {
+// 			warn("could not broadcast message to %s", n.remotes[idx].host.Name)
+// 			if err := n.remotes[idx].Reset(); err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
+//
+// 	return nil
+// }
+
+// Broadcast a message to all remote hosts.
 func (n *Network) Broadcast(message string) error {
+	echan := make(chan error, len(n.remotes))
+	reply := make(chan bool, len(n.remotes))
+
 	// Send messages to all clients
 	for _, client := range n.remotes {
-		go client.send(message, pb.MessageType_BOUNCE)
+		go func(client *Client, echan chan<- error, done chan<- bool) {
+			if err := client.Send(message, pb.MessageType_BOUNCE, 1, Timeout); err != nil {
+				echan <- err
+			}
+			reply <- true
+		}(client, echan, reply)
 	}
 
 	// Create poller and add poll sockets
@@ -134,22 +179,11 @@ func (n *Network) Broadcast(message string) error {
 	}
 
 	// Process messages from clients
-	sockets, _ := poller.PollAll(Timeout)
-	for idx, socket := range sockets {
-
-		// Check to see if we got a reply from the server.
-		if socket.Events&zmq.POLLIN != 0 {
-			// We got a reply from the remote
-			msg, err := n.remotes[idx].recv()
-			if err != nil {
-				return err
-			}
-			info(msg.String())
-		} else {
-			warn("could not broadcast message to %s", n.remotes[idx].host.Name)
-			if err := n.remotes[idx].Reset(); err != nil {
-				return err
-			}
+	for i := 0; i < len(n.remotes); i++ {
+		select {
+		case err := <-echan:
+			return err
+		case <-reply:
 		}
 	}
 

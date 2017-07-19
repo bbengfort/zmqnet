@@ -15,6 +15,8 @@ import (
 // Client communicates with a remote peer.
 type Client struct {
 	Transporter
+	messages uint64        // number of messages sent to measure throughput
+	latency  time.Duration // total time to send messages for throughput
 }
 
 // Connect to the remote peer

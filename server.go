@@ -45,8 +45,6 @@ func (s *Server) Run() (err error) {
 
 // Shutdown the server and clean up the socket
 func (s *Server) Shutdown() error {
-	defer zmq.Term()
-
 	info("shutting down")
 	return s.Close()
 }
@@ -67,7 +65,7 @@ func (s *Server) handle(message *pb.Message) {
 		reply := fmt.Sprintf("reply msg #%d", s.nRecv)
 		s.send(reply, pb.MessageType_SINGLE)
 	case pb.MessageType_BOUNCE:
-		s.send("ack", pb.MessageType_BOUNCE)
+		s.send("ACK", pb.MessageType_BOUNCE)
 	}
 
 }
