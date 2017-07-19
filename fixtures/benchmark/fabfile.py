@@ -47,6 +47,28 @@ env.colorize_errors = True
 env.hosts = [NEVIS, LAGOON, HYPERION]
 env.user = "benjamin"
 
+
+def pproc_command(commands):
+    """
+    Creates a pproc command from a list of command strings.
+    """
+    commands = " ".join([
+        "\"{}\"".format(command) for command in commands
+    ])
+    return "pproc {}".format(commands)
+
+
+def round_robin(n, host, hosts=len(env.hosts)):
+    """
+    Returns a number n (of clients) for the specified host, by allocating the
+    n clients evenly in a round robin fashion. For example, if hosts = 3 and 
+    n = 5; then this function returns 2 for host[0], 2 for host[1] and 1 for
+    host[2].
+    """
+
+
+
+
 ##########################################################################
 ## Honu Commands
 ##########################################################################
